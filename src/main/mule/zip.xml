@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:azure-storage="http://www.mulesoft.org/schema/mule/azure-storage"
+	xmlns:tls="http://www.mulesoft.org/schema/mule/tls" xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core"
+	xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/tls http://www.mulesoft.org/schema/mule/tls/current/mule-tls.xsd
+http://www.mulesoft.org/schema/mule/azure-storage http://www.mulesoft.org/schema/mule/azure-storage/current/mule-azure-storage.xsd">
+	<http:listener-config name="HTTP_Listener_config1" doc:name="HTTP Listener config" doc:id="c3b979dd-cd61-4920-bf8e-dc09913d899a" >
+		<http:listener-connection host="0.0.0.0" port="8082" readTimeout="6000000"/>
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration2" doc:name="HTTP Request configuration" doc:id="0e37b0b2-7e8a-4e3a-b5f7-4277b3ace6a5" >
+		<http:request-connection host="443" streamResponse="true">
+		</http:request-connection>
+	</http:request-config>
+	<flow name="downloadZIP" doc:id="fa8c0700-15a5-4650-9b5a-c5ce04c2dfad" >
+		<http:listener doc:name="Listener" doc:id="60840ce7-264f-40b7-99d8-04397d5d6aa0" config-ref="HTTP_Listener_config1" path="test" outputMimeType="application/zip">
+			<http:response >
+				<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Content-Disposition" : "attachment; filename=test1235.zip",
+	"Content-Type" : "application/zip"
+}]]]></http:headers>
+			</http:response>
+			<http:error-response >
+				<http:headers ><![CDATA[#[output application/java
+---
+{
+	"Content-Type" : "application/zip",
+	"Content-Disposition" : "attachment; filename=responsedata.zip"
+}]]]></http:headers>
+			</http:error-response>
+		
+</http:listener>
+		
+		<logger level="INFO" doc:name="Logger" doc:id="ca7dc71e-144b-461c-9ded-d08e5c127fdf" message="started:::#[typeOf(payload)]"/>
+		<http:request method="GET" doc:name="RestService to downloadzip" doc:id="7faec510-dc2d-441f-b041-3b783989eb4c" config-ref="HTTP_Request_configuration2" url=" http://apps.irs.gov/pub/epostcard/data-download-pub78.zip" outputMimeType="application/octet-stream; headers=true; streaming=true" responseTimeout="500000">
+			<non-repeatable-stream />
+		
+</http:request>
+		
+</flow>
+</mule>

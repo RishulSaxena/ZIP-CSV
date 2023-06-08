@@ -1,0 +1,73 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<mule xmlns:compression="http://www.mulesoft.org/schema/mule/compression" xmlns:xml-module="http://www.mulesoft.org/schema/mule/xml-module"
+	xmlns:file="http://www.mulesoft.org/schema/mule/file"
+	xmlns:ee="http://www.mulesoft.org/schema/mule/ee/core" xmlns:http="http://www.mulesoft.org/schema/mule/http" xmlns="http://www.mulesoft.org/schema/mule/core" xmlns:doc="http://www.mulesoft.org/schema/mule/documentation" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://www.mulesoft.org/schema/mule/core http://www.mulesoft.org/schema/mule/core/current/mule.xsd
+http://www.mulesoft.org/schema/mule/http http://www.mulesoft.org/schema/mule/http/current/mule-http.xsd
+http://www.mulesoft.org/schema/mule/ee/core http://www.mulesoft.org/schema/mule/ee/core/current/mule-ee.xsd
+http://www.mulesoft.org/schema/mule/file http://www.mulesoft.org/schema/mule/file/current/mule-file.xsd
+http://www.mulesoft.org/schema/mule/xml-module http://www.mulesoft.org/schema/mule/xml-module/current/mule-xml-module.xsd
+http://www.mulesoft.org/schema/mule/compression http://www.mulesoft.org/schema/mule/compression/current/mule-compression.xsd">
+	<http:listener-config name="HTTP_Listener_config" doc:name="HTTP Listener config" doc:id="475fdd0a-3c06-4c2f-a603-07834a581c92" >
+		<http:listener-connection host="0.0.0.0" port="8081" />
+	</http:listener-config>
+	<http:request-config name="HTTP_Request_configuration" doc:name="HTTP Request configuration" doc:id="0bd65a5e-e596-470e-9b81-cc6b1b3dec5d" >
+		<http:request-connection host="www.irs.gov" />
+	</http:request-config>
+	<file:config name="File_Config" doc:name="File Config" doc:id="6ce7f75a-3c05-47fb-9eaa-aabf8f51f390" />
+	<http:request-config name="HTTP_Request_configuration1" doc:name="HTTP Request configuration" doc:id="e68c8ef7-c6fb-4042-919e-da25803390fc" >
+		<http:request-connection host="apps.irs.gov" />
+	</http:request-config>
+	<xml-module:config name="XML_Config" doc:name="XML Config" doc:id="98c0b82b-c321-41b8-b898-7593c290c871" />
+	<flow name="lookupCSVData" doc:id="13918fa6-a328-4e5c-83e8-f6db105c0fda" >
+		<http:listener doc:name="Listener" doc:id="32beb09a-78fa-47d4-a314-5b3114c2bdff" config-ref="HTTP_Listener_config" path="/irs"/>
+		<set-variable value="#[[attributes.queryParams.ein]]" doc:name="ein" doc:id="62ea3502-ba5b-4c33-b642-c7e70594adb0" variableName="ein"/>
+		<http:request method="GET" doc:name="Request" doc:id="cf7f2bee-8907-4c0c-9861-46ebf9d7b6bb" config-ref="HTTP_Request_configuration" path="/pub/irs-soi/eo1.csv"/>
+		<ee:transform doc:name="Transform Message" doc:id="b05ffd36-fc21-4455-aaa8-2b1e6607424c">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+
+fun lookupName(einNumber: String): String = do {
+    var EIN = (einNumber)
+    ---
+    (payload filter ((item, index) -> item.EIN == EIN) map ((item, index) -> item.NAME))[0]
+}
+---
+vars.ein map ((item, index) -> { EIN: item, Name: lookupName(item)})]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="1a3032b2-f1bf-45e8-84bd-050d11901817" message="#[payload]"/>
+	</flow>
+	<flow name="extractZIP" doc:id="cc637c0e-baf2-4c2d-be2a-45a8abd4b7e2">
+		<http:listener doc:name="Listener" doc:id="3071a774-7bb0-4314-8253-a829f6caf0c0" config-ref="HTTP_Listener_config" path="/readzip">
+			<http:response>
+				<http:headers><![CDATA[#[output application/java
+---
+{
+	"Content-Disposition" : "attachment; filename=test1235.zip",
+	"Content-Type" : "application/zip"
+}]]]></http:headers>
+			</http:response>
+		</http:listener>
+		<file:read doc:name="Read" doc:id="1506990a-ed6a-4588-b654-19c342decaac" config-ref="File_Config" path="Downloads\response.zip" />
+		<compression:extract doc:name="Extract" doc:id="0ccc616e-385a-495a-9931-f79471ad7598">
+			<compression:extractor>
+				<compression:zip-extractor />
+			</compression:extractor>
+		</compression:extract>
+		<ee:transform doc:name="Transform Message" doc:id="52398498-4241-411e-be53-5cf1c3f846f4">
+			<ee:message>
+				<ee:set-payload><![CDATA[%dw 2.0
+output application/json
+---
+payload mapObject {
+  fileName: '$$',
+  fileContent: $
+}
+]]></ee:set-payload>
+			</ee:message>
+		</ee:transform>
+		<logger level="INFO" doc:name="Logger" doc:id="24d439f6-dfb3-475b-9e82-17bb0130d0d1" />
+	</flow>
+</mule>
