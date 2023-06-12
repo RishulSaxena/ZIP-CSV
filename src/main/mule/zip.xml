@@ -16,6 +16,9 @@ http://www.mulesoft.org/schema/mule/azure-storage http://www.mulesoft.org/schema
 		<http:request-connection host="443" streamResponse="true">
 		</http:request-connection>
 	</http:request-config>
+	<file:config name="File_Config1" doc:name="File Config" doc:id="4e026b53-05fb-4482-8eae-b26a35a1d76f" >
+		<file:connection workingDir="C:\Users\risaxena\Downloads" />
+	</file:config>
 	<flow name="downloadZIP" doc:id="fa8c0700-15a5-4650-9b5a-c5ce04c2dfad" >
 		<http:listener doc:name="Listener" doc:id="60840ce7-264f-40b7-99d8-04397d5d6aa0" config-ref="HTTP_Listener_config1" path="test" outputMimeType="application/zip">
 			<http:response >
@@ -42,6 +45,8 @@ http://www.mulesoft.org/schema/mule/azure-storage http://www.mulesoft.org/schema
 			<non-repeatable-stream />
 		
 </http:request>
+		<file:write doc:name="Write" doc:id="907b03dc-f630-4398-bd84-eab3c3f903b0" config-ref="File_Config1" path="C:\Users\risaxena\Downloads\New WinZip File.zip"/>
 		
+
 </flow>
 </mule>
